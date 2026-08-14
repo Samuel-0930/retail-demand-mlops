@@ -12,7 +12,7 @@ UCI Online Retail II XLSX
   → read-only schema profiling
   → canonical CSV normalization
   → daily batch simulator
-  → PostgreSQL raw table contract
+  → PostgreSQL COPY ingestion
 ```
 
 Airflow, dbt, MLflow, LightGBM, FastAPI는 아직 포함하지 않습니다.
@@ -26,6 +26,7 @@ Airflow, dbt, MLflow, LightGBM, FastAPI는 아직 포함하지 않습니다.
 - 날짜별 CSV 배치 시뮬레이터
 - 환경변수 기반 PostgreSQL 설정 계약
 - 재적재 중복을 방지하는 `raw.retail_sales` DDL
+- 임시 테이블과 `ON CONFLICT`를 사용하는 멱등 PostgreSQL COPY loader
 
 ## Setup
 
@@ -45,6 +46,9 @@ PYTHONPATH=src .venv/bin/python -m retail_demand_mlops.ingestion.profile
 
 # 표준 CSV 생성
 PYTHONPATH=src .venv/bin/python -m retail_demand_mlops.ingestion.transform
+
+# 환경변수에 지정한 PostgreSQL로 CSV 적재
+PYTHONPATH=src .venv/bin/python -m retail_demand_mlops.ingestion.loader
 
 # 전체 테스트
 PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v

@@ -12,6 +12,8 @@ requires-python = ">=3.11"
 dependencies = [
     # XLSX 원본을 전체 메모리에 올리지 않고 읽기 위해 필요한 최소 의존성이다.
     "openpyxl>=3.1,<4",
+    # PostgreSQL의 COPY 프로토콜로 대용량 CSV를 효율적으로 적재한다.
+    "psycopg[binary]>=3.2,<4",
 ]
 
 # src 디렉터리 아래의 Python 패키지만 자동으로 탐색한다.
