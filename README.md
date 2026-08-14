@@ -27,6 +27,7 @@ Airflow, dbt, MLflow, LightGBM, FastAPI는 아직 포함하지 않습니다.
 - 환경변수 기반 PostgreSQL 설정 계약
 - 재적재 중복을 방지하는 `raw.retail_sales` DDL
 - 임시 테이블과 `ON CONFLICT`를 사용하는 멱등 PostgreSQL COPY loader
+- 성공·실패·처리 행 수를 기록하는 `ops.ingestion_runs` 실행 이력
 
 ## Setup
 

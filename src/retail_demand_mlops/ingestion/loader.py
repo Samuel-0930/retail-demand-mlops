@@ -15,6 +15,11 @@ from typing import Any, Iterator
 import psycopg
 
 from retail_demand_mlops.config import DatabaseSettings
+from retail_demand_mlops.ingestion.audit import (
+    fail_ingestion_run,
+    start_ingestion_run,
+    succeed_ingestion_run,
+)
 from retail_demand_mlops.ingestion.download import calculate_sha256
 from retail_demand_mlops.ingestion.normalization import CANONICAL_SALES_COLUMNS
 from retail_demand_mlops.ingestion.transform import (
@@ -55,6 +60,26 @@ class LoadResult:
     input_rows: int
     inserted_rows: int
     skipped_rows: int
+
+
+def read_csv_manifest(manifest_path: Path) -> dict[str, Any]:
+    """CSV manifest의 필수 무결성 메타데이터를 읽고 계약을 검증한다."""
+    if not manifest_path.exists():
+        raise DatasetLoadError(f"CSV manifest가 없습니다: {manifest_path}")
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise DatasetLoadError(f"CSV manifest를 읽을 수 없습니다: {manifest_path}") from error
+
+    source_checksum = manifest.get("target_sha256")
+    if not isinstance(source_checksum, str) or len(source_checksum) != 64:
+        raise DatasetLoadError("manifest의 target_sha256이 올바르지 않습니다")
+    if manifest.get("columns") != list(CANONICAL_SALES_COLUMNS):
+        raise DatasetLoadError("manifest의 컬럼 계약이 현재 스키마와 일치하지 않습니다")
+    expected_row_count = manifest.get("row_count")
+    if not isinstance(expected_row_count, int) or expected_row_count < 0:
+        raise DatasetLoadError("manifest의 row_count가 올바르지 않습니다")
+    return manifest
 
 
 def _parse_boolean(value: str, field_name: str) -> bool:
@@ -112,25 +137,12 @@ def iter_ingestion_rows(
     """manifest로 CSV를 검증하고 COPY에 전달할 행을 한 줄씩 생성한다."""
     if not csv_path.exists():
         raise DatasetLoadError(f"표준 CSV가 없습니다: {csv_path}")
-    if not manifest_path.exists():
-        raise DatasetLoadError(f"CSV manifest가 없습니다: {manifest_path}")
-
-    try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
-        raise DatasetLoadError(f"CSV manifest를 읽을 수 없습니다: {manifest_path}") from error
-
-    source_checksum = manifest.get("target_sha256")
-    if not isinstance(source_checksum, str) or len(source_checksum) != 64:
-        raise DatasetLoadError("manifest의 target_sha256이 올바르지 않습니다")
-    if manifest.get("columns") != list(CANONICAL_SALES_COLUMNS):
-        raise DatasetLoadError("manifest의 컬럼 계약이 현재 스키마와 일치하지 않습니다")
+    manifest = read_csv_manifest(manifest_path)
+    source_checksum = manifest["target_sha256"]
     if calculate_sha256(csv_path) != source_checksum:
         raise DatasetLoadError(f"CSV 체크섬이 manifest와 일치하지 않습니다: {csv_path}")
 
-    expected_row_count = manifest.get("row_count")
-    if not isinstance(expected_row_count, int) or expected_row_count < 0:
-        raise DatasetLoadError("manifest의 row_count가 올바르지 않습니다")
+    expected_row_count = manifest["row_count"]
 
     with csv_path.open(encoding="utf-8", newline="") as csv_file:
         reader = csv.DictReader(csv_file)
@@ -231,23 +243,38 @@ def main() -> None:
     arguments = parser.parse_args()
 
     settings = DatabaseSettings.from_mapping(os.environ)
-    with psycopg.connect(
-        host=settings.host,
-        port=settings.port,
-        dbname=settings.database,
-        user=settings.user,
-        password=settings.password,
-    ) as connection:
-        result = load_csv_to_postgres(
-            connection,
-            arguments.source,
-            arguments.manifest,
-            target_date=arguments.date,
+    connection_parameters = {
+        "host": settings.host,
+        "port": settings.port,
+        "dbname": settings.database,
+        "user": settings.user,
+        "password": settings.password,
+    }
+    manifest = read_csv_manifest(arguments.manifest)
+
+    # 감사 기록은 별도 autocommit 연결을 사용해 데이터 적재 롤백과 독립적으로 남긴다.
+    with psycopg.connect(**connection_parameters, autocommit=True) as audit_connection:
+        run_id = start_ingestion_run(
+            audit_connection,
+            manifest["target_sha256"],
+            arguments.date,
         )
+        try:
+            with psycopg.connect(**connection_parameters) as data_connection:
+                result = load_csv_to_postgres(
+                    data_connection,
+                    arguments.source,
+                    arguments.manifest,
+                    target_date=arguments.date,
+                )
+        except BaseException as error:
+            fail_ingestion_run(audit_connection, run_id, error)
+            raise
+        succeed_ingestion_run(audit_connection, run_id, result)
 
     batch = arguments.date.isoformat() if arguments.date is not None else "all"
     print(
-        f"적재 완료: batch={batch}, input={result.input_rows}, "
+        f"적재 완료: run_id={run_id}, batch={batch}, input={result.input_rows}, "
         f"inserted={result.inserted_rows}, skipped={result.skipped_rows}"
     )
 
