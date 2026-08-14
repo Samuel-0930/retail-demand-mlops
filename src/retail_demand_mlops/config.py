@@ -49,4 +49,3 @@ class DatabaseSettings:
             user=user,
             password=password,
         )
-

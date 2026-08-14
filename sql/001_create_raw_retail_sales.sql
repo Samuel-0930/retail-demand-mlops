@@ -39,4 +39,3 @@ CREATE INDEX IF NOT EXISTS retail_sales_invoice_id_idx
 CREATE INDEX IF NOT EXISTS retail_sales_customer_id_idx
     ON raw.retail_sales (customer_id)
     WHERE customer_id IS NOT NULL;
-

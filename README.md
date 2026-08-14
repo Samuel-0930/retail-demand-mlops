@@ -56,4 +56,3 @@ PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
 
 [UCI Online Retail II](https://archive.ics.uci.edu/dataset/502/online%2Bretail%2Bii)를
 사용합니다. 데이터셋은 CC BY 4.0 라이선스로 제공됩니다.
-

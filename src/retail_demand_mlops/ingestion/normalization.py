@@ -125,4 +125,3 @@ def normalize_transaction(source_row: Mapping[str, Any]) -> dict[str, str]:
         "is_zero_price": str(decimal_price == 0).lower(),
         "is_negative_price": str(decimal_price < 0).lower(),
     }
-
