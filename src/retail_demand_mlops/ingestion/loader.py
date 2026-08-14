@@ -41,6 +41,7 @@ COPY_COLUMNS = (
     "is_zero_price",
     "is_negative_price",
 )
+SALE_DATE_INDEX = COPY_COLUMNS.index("sale_date")
 
 
 class DatasetLoadError(RuntimeError):
@@ -153,12 +154,25 @@ def iter_ingestion_rows(
         )
 
 
+def iter_daily_ingestion_rows(
+    csv_path: Path,
+    manifest_path: Path,
+    target_date: date,
+) -> Iterator[tuple[Any, ...]]:
+    """검증된 표준 CSV에서 지정 날짜의 PostgreSQL 적재 행만 반환한다."""
+    for ingestion_row in iter_ingestion_rows(csv_path, manifest_path):
+        if ingestion_row[SALE_DATE_INDEX] == target_date:
+            yield ingestion_row
+
+
 def load_csv_to_postgres(
     connection: psycopg.Connection[Any],
     csv_path: Path,
     manifest_path: Path,
+    *,
+    target_date: date | None = None,
 ) -> LoadResult:
-    """COPY 임시 테이블을 거쳐 신규 행만 raw.retail_sales에 삽입한다.
+    """전체 또는 지정 날짜의 신규 행만 COPY를 거쳐 raw 테이블에 삽입한다.
 
     같은 파일을 다시 처리하면 복합 기본키 충돌은 무시하고 신규 행만 반영한다.
     함수는 commit하지 않으므로 호출자가 전체 적재의 트랜잭션 경계를 결정한다.
@@ -178,7 +192,12 @@ def load_csv_to_postgres(
         with cursor.copy(
             f"COPY retail_sales_stage ({copy_columns_sql}) FROM STDIN"
         ) as copy:
-            for ingestion_row in iter_ingestion_rows(csv_path, manifest_path):
+            ingestion_rows = (
+                iter_ingestion_rows(csv_path, manifest_path)
+                if target_date is None
+                else iter_daily_ingestion_rows(csv_path, manifest_path, target_date)
+            )
+            for ingestion_row in ingestion_rows:
                 copy.write_row(ingestion_row)
                 input_rows += 1
 
@@ -204,6 +223,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, default=DEFAULT_CSV_PATH)
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST_PATH)
+    parser.add_argument(
+        "--date",
+        type=date.fromisoformat,
+        help="적재할 날짜(YYYY-MM-DD). 생략하면 전체 CSV를 적재한다.",
+    )
     arguments = parser.parse_args()
 
     settings = DatabaseSettings.from_mapping(os.environ)
@@ -214,11 +238,17 @@ def main() -> None:
         user=settings.user,
         password=settings.password,
     ) as connection:
-        result = load_csv_to_postgres(connection, arguments.source, arguments.manifest)
+        result = load_csv_to_postgres(
+            connection,
+            arguments.source,
+            arguments.manifest,
+            target_date=arguments.date,
+        )
 
+    batch = arguments.date.isoformat() if arguments.date is not None else "all"
     print(
-        f"적재 완료: input={result.input_rows}, inserted={result.inserted_rows}, "
-        f"skipped={result.skipped_rows}"
+        f"적재 완료: batch={batch}, input={result.input_rows}, "
+        f"inserted={result.inserted_rows}, skipped={result.skipped_rows}"
     )
 
 

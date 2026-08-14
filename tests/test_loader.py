@@ -9,7 +9,11 @@ from decimal import Decimal
 from pathlib import Path
 
 from retail_demand_mlops.ingestion.download import calculate_sha256
-from retail_demand_mlops.ingestion.loader import DatasetLoadError, iter_ingestion_rows
+from retail_demand_mlops.ingestion.loader import (
+    DatasetLoadError,
+    iter_daily_ingestion_rows,
+    iter_ingestion_rows,
+)
 from retail_demand_mlops.ingestion.normalization import CANONICAL_SALES_COLUMNS
 
 
@@ -87,6 +91,27 @@ class IterIngestionRowsTest(unittest.TestCase):
 
         with self.assertRaisesRegex(DatasetLoadError, "CSV 행 수가 manifest와"):
             list(iter_ingestion_rows(self.csv_path, self.manifest_path))
+
+    def test_yields_only_rows_for_target_date(self) -> None:
+        """날짜별 배치는 전체 CSV 계약을 검증하면서 요청 날짜만 반환해야 한다."""
+        second_row = dict(self.rows[0])
+        second_row["invoice_id"] = "536366"
+        second_row["invoice_datetime"] = "2010-12-02T09:00:00"
+        second_row["date"] = "2010-12-02"
+        self.rows.append(second_row)
+        self._write_files()
+
+        ingestion_rows = list(
+            iter_daily_ingestion_rows(
+                self.csv_path,
+                self.manifest_path,
+                date(2010, 12, 2),
+            )
+        )
+
+        self.assertEqual(len(ingestion_rows), 1)
+        self.assertEqual(ingestion_rows[0][2], "536366")
+        self.assertEqual(ingestion_rows[0][7], date(2010, 12, 2))
 
 
 if __name__ == "__main__":

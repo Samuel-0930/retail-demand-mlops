@@ -50,6 +50,9 @@ PYTHONPATH=src .venv/bin/python -m retail_demand_mlops.ingestion.transform
 # 환경변수에 지정한 PostgreSQL로 CSV 적재
 PYTHONPATH=src .venv/bin/python -m retail_demand_mlops.ingestion.loader
 
+# 지정 날짜의 배치만 PostgreSQL로 적재
+PYTHONPATH=src .venv/bin/python -m retail_demand_mlops.ingestion.loader --date 2009-12-01
+
 # 전체 테스트
 PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
 ```
