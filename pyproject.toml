@@ -1,0 +1,19 @@
+# 빌드 도구는 패키징에만 사용하며, 실행 시 필요한 외부 의존성은 아직 없다.
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+# 프로젝트의 기본 메타데이터와 지원할 Python 버전을 정의한다.
+[project]
+name = "retail-demand-mlops"
+version = "0.1.0"
+description = "End-to-end retail demand data and MLOps pipeline"
+requires-python = ">=3.11"
+dependencies = [
+    # XLSX 원본을 전체 메모리에 올리지 않고 읽기 위해 필요한 최소 의존성이다.
+    "openpyxl>=3.1,<4",
+]
+
+# src 디렉터리 아래의 Python 패키지만 자동으로 탐색한다.
+[tool.setuptools.packages.find]
+where = ["src"]
