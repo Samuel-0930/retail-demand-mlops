@@ -30,6 +30,7 @@ Airflow, dbt, MLflow, LightGBM, FastAPI는 아직 포함하지 않습니다.
 - 성공·실패·처리 행 수를 기록하는 `ops.ingestion_runs` 실행 이력
 - 하루치 적재 후 결과를 확인하는 일일 pipeline
 - 시작일과 종료일을 포함해 날짜순으로 처리하는 backfill pipeline
+- 최근 적재 성공·실패와 처리 행 수를 보여주는 읽기 전용 운영 조회
 
 ## Setup
 
@@ -72,6 +73,9 @@ python3 -m venv .venv
 
 # 지정한 날짜 범위의 일일 pipeline을 순서대로 실행
 .venv/bin/retail-backfill --start-date 2009-12-01 --end-date 2009-12-03
+
+# PostgreSQL의 최근 적재 실행 10개를 읽기 전용으로 조회
+.venv/bin/retail-runs --limit 10
 
 # 전체 테스트
 PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
