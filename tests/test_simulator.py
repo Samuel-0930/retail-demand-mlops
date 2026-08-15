@@ -8,6 +8,7 @@ from pathlib import Path
 from retail_demand_mlops.ingestion.simulator import (
     SimulationDataError,
     iter_daily_sales,
+    iter_daily_sales_records,
 )
 
 
@@ -53,6 +54,22 @@ class IterDailySalesTest(unittest.TestCase):
 
         with self.assertRaisesRegex(SimulationDataError, "Invalid ISO date"):
             list(iter_daily_sales(self.source_path, date(2024, 1, 1)))
+
+    def test_preserves_source_data_row_numbers(self) -> None:
+        """날짜별 적재 기본키에 사용할 원본 데이터 행 번호를 함께 반환해야 한다."""
+        self.source_path.write_text(
+            "date,product_id\n"
+            "2024-01-01,101\n"
+            "2024-01-02,202\n"
+            "2024-01-02,303\n",
+            encoding="utf-8",
+        )
+
+        records = list(
+            iter_daily_sales_records(self.source_path, date(2024, 1, 2))
+        )
+
+        self.assertEqual([record.source_row_number for record in records], [2, 3])
 
 
 if __name__ == "__main__":

@@ -22,6 +22,7 @@ from retail_demand_mlops.ingestion.audit import (
 )
 from retail_demand_mlops.ingestion.download import calculate_sha256
 from retail_demand_mlops.ingestion.normalization import CANONICAL_SALES_COLUMNS
+from retail_demand_mlops.ingestion.simulator import iter_daily_sales_records
 from retail_demand_mlops.ingestion.transform import (
     DEFAULT_CSV_PATH,
     DEFAULT_MANIFEST_PATH,
@@ -46,7 +47,6 @@ COPY_COLUMNS = (
     "is_zero_price",
     "is_negative_price",
 )
-SALE_DATE_INDEX = COPY_COLUMNS.index("sale_date")
 
 
 class DatasetLoadError(RuntimeError):
@@ -79,6 +79,20 @@ def read_csv_manifest(manifest_path: Path) -> dict[str, Any]:
     expected_row_count = manifest.get("row_count")
     if not isinstance(expected_row_count, int) or expected_row_count < 0:
         raise DatasetLoadError("manifest의 row_count가 올바르지 않습니다")
+    return manifest
+
+
+def validate_csv_contract(csv_path: Path, manifest_path: Path) -> dict[str, Any]:
+    """CSV 체크섬과 헤더가 manifest 및 현재 표준 스키마와 같은지 확인한다."""
+    if not csv_path.exists():
+        raise DatasetLoadError(f"표준 CSV가 없습니다: {csv_path}")
+    manifest = read_csv_manifest(manifest_path)
+    if calculate_sha256(csv_path) != manifest["target_sha256"]:
+        raise DatasetLoadError(f"CSV 체크섬이 manifest와 일치하지 않습니다: {csv_path}")
+    with csv_path.open(encoding="utf-8", newline="") as csv_file:
+        reader = csv.DictReader(csv_file)
+        if tuple(reader.fieldnames or ()) != CANONICAL_SALES_COLUMNS:
+            raise DatasetLoadError("CSV 헤더가 표준 판매 스키마와 일치하지 않습니다")
     return manifest
 
 
@@ -135,20 +149,12 @@ def iter_ingestion_rows(
     manifest_path: Path,
 ) -> Iterator[tuple[Any, ...]]:
     """manifest로 CSV를 검증하고 COPY에 전달할 행을 한 줄씩 생성한다."""
-    if not csv_path.exists():
-        raise DatasetLoadError(f"표준 CSV가 없습니다: {csv_path}")
-    manifest = read_csv_manifest(manifest_path)
+    manifest = validate_csv_contract(csv_path, manifest_path)
     source_checksum = manifest["target_sha256"]
-    if calculate_sha256(csv_path) != source_checksum:
-        raise DatasetLoadError(f"CSV 체크섬이 manifest와 일치하지 않습니다: {csv_path}")
-
     expected_row_count = manifest["row_count"]
 
     with csv_path.open(encoding="utf-8", newline="") as csv_file:
         reader = csv.DictReader(csv_file)
-        if tuple(reader.fieldnames or ()) != CANONICAL_SALES_COLUMNS:
-            raise DatasetLoadError("CSV 헤더가 표준 판매 스키마와 일치하지 않습니다")
-
         actual_row_count = 0
         for source_row_number, row in enumerate(reader, start=1):
             actual_row_count = source_row_number
@@ -172,9 +178,37 @@ def iter_daily_ingestion_rows(
     target_date: date,
 ) -> Iterator[tuple[Any, ...]]:
     """검증된 표준 CSV에서 지정 날짜의 PostgreSQL 적재 행만 반환한다."""
-    for ingestion_row in iter_ingestion_rows(csv_path, manifest_path):
-        if ingestion_row[SALE_DATE_INDEX] == target_date:
-            yield ingestion_row
+    manifest = validate_csv_contract(csv_path, manifest_path)
+    source_checksum = manifest["target_sha256"]
+    expected_row_count = manifest["row_count"]
+    simulated_sales = iter_daily_sales_records(
+        csv_path,
+        target_date,
+        date_column="date",
+    )
+
+    while True:
+        try:
+            simulated_sale = next(simulated_sales)
+        except StopIteration as stop:
+            actual_row_count = stop.value
+            break
+        try:
+            yield _parse_row(
+                dict(simulated_sale.values),
+                source_checksum,
+                simulated_sale.source_row_number,
+            )
+        except DatasetLoadError as error:
+            raise DatasetLoadError(
+                f"CSV 행 검증에 실패했습니다: row={simulated_sale.source_row_number}"
+            ) from error
+
+    if actual_row_count != expected_row_count:
+        raise DatasetLoadError(
+            "CSV 행 수가 manifest와 일치하지 않습니다: "
+            f"expected={expected_row_count}, actual={actual_row_count}"
+        )
 
 
 def load_csv_to_postgres(

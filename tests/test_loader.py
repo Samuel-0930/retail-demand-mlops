@@ -110,6 +110,7 @@ class IterIngestionRowsTest(unittest.TestCase):
         )
 
         self.assertEqual(len(ingestion_rows), 1)
+        self.assertEqual(ingestion_rows[0][1], 2)
         self.assertEqual(ingestion_rows[0][2], "536366")
         self.assertEqual(ingestion_rows[0][7], date(2010, 12, 2))
 
