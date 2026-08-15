@@ -16,6 +16,16 @@ dependencies = [
     "psycopg[binary]>=3.2,<4",
 ]
 
+# 긴 모듈 경로를 외우지 않아도 기존 main 함수를 실행하도록 CLI 진입점을 제공한다.
+[project.scripts]
+retail-download = "retail_demand_mlops.ingestion.download:main"
+retail-profile = "retail_demand_mlops.ingestion.profile:main"
+retail-transform = "retail_demand_mlops.ingestion.transform:main"
+retail-db-setup = "retail_demand_mlops.database.setup:main"
+retail-load = "retail_demand_mlops.ingestion.loader:main"
+retail-validate = "retail_demand_mlops.ingestion.validate:main"
+retail-daily = "retail_demand_mlops.ingestion.daily_pipeline:main"
+
 # src 디렉터리 아래의 Python 패키지만 자동으로 탐색한다.
 [tool.setuptools.packages.find]
 where = ["src"]

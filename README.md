@@ -33,38 +33,40 @@ Airflow, dbt, MLflow, LightGBM, FastAPI는 아직 포함하지 않습니다.
 
 ```bash
 python3 -m venv .venv
-.venv/bin/python -m pip install -e .
+.venv/bin/python -m pip install .
 ```
+
+소스 코드를 변경한 뒤 CLI로 확인할 때는 마지막 설치 명령을 다시 실행합니다.
 
 ## Commands
 
 ```bash
 # 공식 원본 다운로드
-PYTHONPATH=src .venv/bin/python -m retail_demand_mlops.ingestion.download
+.venv/bin/retail-download
 
 # 읽기 전용 스키마 프로파일 생성
-PYTHONPATH=src .venv/bin/python -m retail_demand_mlops.ingestion.profile
+.venv/bin/retail-profile
 
 # 표준 CSV 생성
-PYTHONPATH=src .venv/bin/python -m retail_demand_mlops.ingestion.transform
+.venv/bin/retail-transform
 
 # 기존 PostgreSQL 데이터베이스에 raw·ops 스키마 적용
-PYTHONPATH=src .venv/bin/python -m retail_demand_mlops.database.setup
+.venv/bin/retail-db-setup
 
 # 환경변수에 지정한 PostgreSQL로 CSV 적재
-PYTHONPATH=src .venv/bin/python -m retail_demand_mlops.ingestion.loader
+.venv/bin/retail-load
 
 # 지정 날짜의 배치만 PostgreSQL로 적재
-PYTHONPATH=src .venv/bin/python -m retail_demand_mlops.ingestion.loader --date 2009-12-01
+.venv/bin/retail-load --date 2009-12-01
 
 # manifest와 PostgreSQL 전체 적재 결과 비교
-PYTHONPATH=src .venv/bin/python -m retail_demand_mlops.ingestion.validate
+.venv/bin/retail-validate
 
 # simulator 기대값과 PostgreSQL 하루치 배치 비교
-PYTHONPATH=src .venv/bin/python -m retail_demand_mlops.ingestion.validate --date 2009-12-01
+.venv/bin/retail-validate --date 2009-12-01
 
 # 하루치 적재와 검증을 순서대로 실행
-PYTHONPATH=src .venv/bin/python -m retail_demand_mlops.ingestion.daily_pipeline --date 2009-12-01
+.venv/bin/retail-daily --date 2009-12-01
 
 # 전체 테스트
 PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
