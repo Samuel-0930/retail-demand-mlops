@@ -7,8 +7,10 @@ from pathlib import Path
 
 from retail_demand_mlops.ingestion.simulator import (
     SimulationDataError,
+    SimulationDateRangeError,
     iter_daily_sales,
     iter_daily_sales_records,
+    map_simulation_target_date,
 )
 
 
@@ -70,6 +72,42 @@ class IterDailySalesTest(unittest.TestCase):
         )
 
         self.assertEqual([record.source_row_number for record in records], [2, 3])
+
+
+class SimulationDateMappingTest(unittest.TestCase):
+    """Airflow 일정 날짜를 과거 원본 판매 날짜로 안전하게 변환하는지 확인한다."""
+
+    def test_maps_elapsed_schedule_days_to_source_date(self) -> None:
+        """일정 기준일부터 지난 일수를 원본 시작일에 그대로 더해야 한다."""
+        self.assertEqual(
+            map_simulation_target_date(
+                interval_start_date=date(2026, 8, 18),
+                schedule_start_date=date(2026, 8, 16),
+                source_start_date=date(2009, 12, 1),
+                source_end_date=date(2011, 12, 9),
+            ),
+            date(2009, 12, 3),
+        )
+
+    def test_rejects_interval_before_schedule_start(self) -> None:
+        """음수 offset으로 원본 시작일 이전을 만들지 않아야 한다."""
+        with self.assertRaisesRegex(SimulationDateRangeError, "기준일보다 빠릅니다"):
+            map_simulation_target_date(
+                interval_start_date=date(2026, 8, 15),
+                schedule_start_date=date(2026, 8, 16),
+                source_start_date=date(2009, 12, 1),
+                source_end_date=date(2011, 12, 9),
+            )
+
+    def test_rejects_date_after_source_end(self) -> None:
+        """원본 종료 뒤를 빈 정상 배치로 처리하지 않아야 한다."""
+        with self.assertRaisesRegex(SimulationDateRangeError, "원본 종료일"):
+            map_simulation_target_date(
+                interval_start_date=date(2028, 8, 25),
+                schedule_start_date=date(2026, 8, 16),
+                source_start_date=date(2009, 12, 1),
+                source_end_date=date(2011, 12, 9),
+            )
 
 
 if __name__ == "__main__":

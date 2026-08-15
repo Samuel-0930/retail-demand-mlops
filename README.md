@@ -40,6 +40,7 @@ Airflow는 수동 날짜 한 건을 처리하는 첫 DAG와 PostgreSQL 연동 �
 - Airflow DAG의 `2009-12-01` 적재·검증 성공 확인
 - 같은 Airflow DAG 연속 실행의 PostgreSQL 멱등성 확인
 - 최대 3일을 날짜순으로 처리하는 수동 Airflow backfill DAG
+- 현재 일일 구간을 과거 판매 날짜로 재생하는 pause 상태의 자동 Airflow DAG
 
 ## Setup
 
@@ -129,6 +130,8 @@ PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
 [첫 수동 날짜 DAG 구조와 확인 방법](docs/week2_first_dag.md)
 
 [최대 3일 Airflow backfill DAG 실행 방법](docs/week2_backfill_dag.md)
+
+[자동 일일 시뮬레이션 DAG 설정과 날짜 매핑](docs/week2_daily_simulation_dag.md)
 
 ## Dataset
 

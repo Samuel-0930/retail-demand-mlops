@@ -5,7 +5,7 @@ from __future__ import annotations
 import csv
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Generator
 
@@ -14,12 +14,42 @@ class SimulationDataError(ValueError):
     """원본 데이터로 정상적인 일별 배치를 만들 수 없을 때 발생하는 예외."""
 
 
+class SimulationDateRangeError(ValueError):
+    """Airflow 일정 날짜를 원본 판매 기간에 안전하게 연결할 수 없을 때의 예외."""
+
+
 @dataclass(frozen=True)
 class SimulatedSale:
     """원본 데이터 행 번호와 날짜별 판매 값을 함께 보존한다."""
 
     source_row_number: int
     values: Mapping[str, str]
+
+
+def map_simulation_target_date(
+    *,
+    interval_start_date: date,
+    schedule_start_date: date,
+    source_start_date: date,
+    source_end_date: date,
+) -> date:
+    """일정 기준일부터 지난 일수를 과거 원본 시작일에 더해 판매 날짜를 만든다."""
+    if source_start_date > source_end_date:
+        raise SimulationDateRangeError("원본 시작일은 종료일보다 늦을 수 없습니다")
+    if interval_start_date < schedule_start_date:
+        raise SimulationDateRangeError(
+            "data interval 시작일이 시뮬레이션 기준일보다 빠릅니다: "
+            f"interval={interval_start_date}, schedule_start={schedule_start_date}"
+        )
+
+    elapsed_days = (interval_start_date - schedule_start_date).days
+    target_date = source_start_date + timedelta(days=elapsed_days)
+    if target_date > source_end_date:
+        raise SimulationDateRangeError(
+            "처리 판매 날짜가 원본 종료일을 넘었습니다: "
+            f"target={target_date}, source_end={source_end_date}"
+        )
+    return target_date
 
 
 def iter_daily_sales_records(

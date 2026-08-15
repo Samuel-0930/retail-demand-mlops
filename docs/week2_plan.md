@@ -13,8 +13,8 @@ Week 2는 Week 1의 Python pipeline을 수정하는 단계가 아니라, Airflow
 6. [완료] 작은 날짜 범위 backfill 방법 결정
 7. [완료] 최대 3일 순차 backfill DAG 구현과 검증
 8. [완료] 일일 schedule과 data interval 매핑 결정
-9. [다음] 시뮬레이션 설정과 자동 일일 DAG 구현·검증
-10. Week 2 운영 Runbook과 GitHub CI 분리 여부 정리
+9. [완료] 시뮬레이션 설정과 자동 일일 DAG 구현·검증
+10. [다음] Week 2 운영 Runbook과 GitHub CI 분리 여부 정리
 
 ## 단계별 원칙
 
@@ -26,7 +26,7 @@ Week 2는 Week 1의 Python pipeline을 수정하는 단계가 아니라, Airflow
 
 ## 현재 위치
 
-자동 일일 실행은 수동 DAG와 분리하고, 명시적인 일일 data interval의 지난 일수를
-과거 원본 날짜에 더해 순차 재생하기로 결정했습니다. 다음 작업은 이 기준 날짜들을
-환경 설정으로 분리하고, 최초 pause 상태의 자동 일일 DAG와 날짜 매핑 테스트를
-구현하는 것입니다.
+세 기준 날짜를 환경 설정으로 분리하고, 명시적인 일일 data interval timetable을
+사용하는 `retail_daily_simulation` DAG를 구현했습니다. DAG는 최초 pause 상태이며
+`2026-08-16` 구간을 `2009-12-01` 판매 날짜로 연결하는 것을 검증했습니다. 다음
+작업은 Week 2 전체 실행·복구 절차와 Airflow 전용 CI 범위를 정리하는 것입니다.

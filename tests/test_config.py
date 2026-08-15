@@ -1,8 +1,13 @@
 from __future__ import annotations
 
 import unittest
+from datetime import date
 
-from retail_demand_mlops.config import ConfigurationError, DatabaseSettings
+from retail_demand_mlops.config import (
+    ConfigurationError,
+    DatabaseSettings,
+    SimulationSettings,
+)
 
 
 class DatabaseSettingsTest(unittest.TestCase):
@@ -47,6 +52,49 @@ class DatabaseSettingsTest(unittest.TestCase):
                     "RETAIL_DB_PORT": "postgres",
                     "RETAIL_DB_NAME": "retail_demand",
                     "RETAIL_DB_USER": "retail_app",
+                }
+            )
+
+
+class SimulationSettingsTest(unittest.TestCase):
+    """현재 일정과 과거 판매 날짜를 연결하는 설정 계약을 확인한다."""
+
+    def test_reads_required_simulation_dates(self) -> None:
+        """세 기준 날짜를 ISO 형식으로 읽어 변경 불가능한 설정을 만들어야 한다."""
+        settings = SimulationSettings.from_mapping(
+            {
+                "RETAIL_SIMULATION_SCHEDULE_START_DATE": "2026-08-16",
+                "RETAIL_SIMULATION_SOURCE_START_DATE": "2009-12-01",
+                "RETAIL_SIMULATION_SOURCE_END_DATE": "2011-12-09",
+            }
+        )
+
+        self.assertEqual(settings.schedule_start_date, date(2026, 8, 16))
+        self.assertEqual(settings.source_start_date, date(2009, 12, 1))
+        self.assertEqual(settings.source_end_date, date(2011, 12, 9))
+        self.assertEqual(settings.schedule_end_date, date(2028, 8, 23))
+
+    def test_rejects_missing_schedule_start_date(self) -> None:
+        """배포 기준일이 없으면 현재 날짜를 임의로 사용하지 않아야 한다."""
+        with self.assertRaisesRegex(
+            ConfigurationError,
+            "RETAIL_SIMULATION_SCHEDULE_START_DATE",
+        ):
+            SimulationSettings.from_mapping(
+                {
+                    "RETAIL_SIMULATION_SOURCE_START_DATE": "2009-12-01",
+                    "RETAIL_SIMULATION_SOURCE_END_DATE": "2011-12-09",
+                }
+            )
+
+    def test_rejects_reversed_source_range(self) -> None:
+        """원본 시작일이 종료일보다 늦은 설정을 거부해야 한다."""
+        with self.assertRaisesRegex(ConfigurationError, "원본 시작일"):
+            SimulationSettings.from_mapping(
+                {
+                    "RETAIL_SIMULATION_SCHEDULE_START_DATE": "2026-08-16",
+                    "RETAIL_SIMULATION_SOURCE_START_DATE": "2011-12-09",
+                    "RETAIL_SIMULATION_SOURCE_END_DATE": "2009-12-01",
                 }
             )
 

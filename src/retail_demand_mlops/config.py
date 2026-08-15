@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date, timedelta
 from typing import Mapping
 
 
@@ -49,3 +50,55 @@ class DatabaseSettings:
             user=user,
             password=password,
         )
+
+
+@dataclass(frozen=True)
+class SimulationSettings:
+    """현재 Airflow 일정과 과거 판매 기간을 연결하는 기준 날짜 설정."""
+
+    schedule_start_date: date
+    source_start_date: date
+    source_end_date: date
+
+    @classmethod
+    def from_mapping(cls, environment: Mapping[str, str]) -> SimulationSettings:
+        """필수 ISO 날짜 환경변수를 읽고 유효한 시뮬레이션 범위를 만든다."""
+        schedule_start_date = _read_required_date(
+            environment,
+            "RETAIL_SIMULATION_SCHEDULE_START_DATE",
+        )
+        source_start_date = _read_required_date(
+            environment,
+            "RETAIL_SIMULATION_SOURCE_START_DATE",
+        )
+        source_end_date = _read_required_date(
+            environment,
+            "RETAIL_SIMULATION_SOURCE_END_DATE",
+        )
+        if source_start_date > source_end_date:
+            raise ConfigurationError(
+                "시뮬레이션 원본 시작일은 종료일보다 늦을 수 없습니다"
+            )
+
+        return cls(
+            schedule_start_date=schedule_start_date,
+            source_start_date=source_start_date,
+            source_end_date=source_end_date,
+        )
+
+    @property
+    def schedule_end_date(self) -> date:
+        """원본 마지막 날짜와 연결되는 마지막 schedule interval 시작일을 반환한다."""
+        source_day_count = (self.source_end_date - self.source_start_date).days
+        return self.schedule_start_date + timedelta(days=source_day_count)
+
+
+def _read_required_date(environment: Mapping[str, str], key: str) -> date:
+    """환경변수 하나를 필수 ISO 날짜로 검증한다."""
+    raw_date = environment.get(key, "").strip()
+    if not raw_date:
+        raise ConfigurationError(f"{key}가 필요합니다")
+    try:
+        return date.fromisoformat(raw_date)
+    except ValueError as error:
+        raise ConfigurationError(f"{key}는 YYYY-MM-DD 형식이어야 합니다") from error
