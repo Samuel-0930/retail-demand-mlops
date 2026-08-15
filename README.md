@@ -35,6 +35,7 @@ Airflow는 런타임 경계와 구현 순서를 결정한 상태이며 DAG는 �
 - 시작일과 종료일을 포함해 날짜순으로 처리하는 backfill pipeline
 - 최근 적재 성공·실패와 처리 행 수를 보여주는 읽기 전용 운영 조회
 - push와 pull request마다 단위 테스트를 실행하는 GitHub Actions CI
+- 공식 constraints를 사용하는 Airflow 3.3.0 전용 환경 설치 스크립트
 
 ## Setup
 
@@ -116,6 +117,8 @@ PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
 - 이후: dbt 데이터 모델링 → MLflow·LightGBM → FastAPI
 
 [Week 2 세부 계획](docs/week2_plan.md)
+
+[Airflow 전용 환경 설치 방법](docs/week2_airflow_setup.md)
 
 ## Dataset
 

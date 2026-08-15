@@ -5,8 +5,8 @@ Week 2는 Week 1의 Python pipeline을 수정하는 단계가 아니라, Airflow
 
 ## 작업 순서
 
-1. Airflow 3.3.0 전용 가상환경과 고정 constraints 설치 절차 추가
-2. `airflow.sdk` 기반 수동 날짜 DAG 한 개 작성
+1. [완료] Airflow 3.3.0 전용 가상환경과 고정 constraints 설치 절차 추가
+2. [다음] `airflow.sdk` 기반 수동 날짜 DAG 한 개 작성
 3. DAG import 오류와 task 의존성 자동 테스트
 4. `2009-12-01` 수동 실행과 PostgreSQL 결과 확인
 5. 같은 날짜 재실행으로 멱등성 확인
@@ -24,6 +24,6 @@ Week 2는 Week 1의 Python pipeline을 수정하는 단계가 아니라, Airflow
 
 ## 현재 위치
 
-호환성 조사와 런타임 경계 결정까지 완료했습니다. 다음 작업은 Airflow 전용
-가상환경 설치 절차를 추가하고 로컬에서 `airflow version`을 확인하는 것입니다.
-
+Airflow 3.3.0 전용 환경 설치와 `airflow.sdk`, 기존 pipeline import 검증까지
+완료했습니다. 다음 작업은 schedule 없이 수동 날짜를 받는 첫 DAG를 작성하는
+것입니다.
