@@ -40,9 +40,22 @@ Airflow, dbt, MLflow, LightGBM, FastAPI는 아직 포함하지 않습니다.
 ```bash
 python3 -m venv .venv
 .venv/bin/python -m pip install .
+cp .env.example .env
 ```
 
-소스 코드를 변경한 뒤 CLI로 확인할 때는 마지막 설치 명령을 다시 실행합니다.
+`.env`를 자신의 PostgreSQL 접속 정보로 수정한 뒤 새 터미널마다 설정을
+불러옵니다.
+
+```bash
+set -a
+source .env
+set +a
+```
+
+소스 코드를 변경한 뒤 CLI로 확인할 때는 설치 명령을 다시 실행합니다.
+
+처음부터 순서대로 실행하거나 문제를 해결할 때는
+[Week 1 운영 Runbook](docs/week1_runbook.md)을 확인합니다.
 
 ## Commands
 
