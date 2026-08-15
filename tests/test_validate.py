@@ -5,11 +5,12 @@ import tempfile
 import unittest
 from datetime import date
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from retail_demand_mlops.ingestion.normalization import CANONICAL_SALES_COLUMNS
 from retail_demand_mlops.ingestion.validate import (
     LoadValidationError,
+    validate_loaded_date,
     validate_loaded_source,
 )
 
@@ -59,6 +60,40 @@ class ValidateLoadedSourceTest(unittest.TestCase):
 
         with self.assertRaisesRegex(LoadValidationError, "행 수 expected=3, actual=2"):
             validate_loaded_source(connection, self.manifest_path)
+
+    @patch("retail_demand_mlops.ingestion.validate.iter_daily_ingestion_rows")
+    def test_validates_target_date_source_row_range(self, daily_rows: Mock) -> None:
+        """하루치 기대 행 수와 첫·마지막 원본 행 번호가 모두 일치해야 한다."""
+        daily_rows.return_value = [("a" * 64, 10), ("a" * 64, 11)]
+        connection = self._connection_with_result((2, 10, 11, 1, 0, 0))
+
+        report = validate_loaded_date(
+            connection,
+            Path("sales.csv"),
+            self.manifest_path,
+            date(2009, 12, 1),
+        )
+
+        self.assertEqual(report.expected_rows, 2)
+        self.assertEqual(report.first_source_row, 10)
+        self.assertEqual(report.last_source_row, 11)
+
+    @patch("retail_demand_mlops.ingestion.validate.iter_daily_ingestion_rows")
+    def test_rejects_incomplete_target_date(self, daily_rows: Mock) -> None:
+        """날짜별 PostgreSQL 행이 하나라도 빠지면 배치 검증을 실패해야 한다."""
+        daily_rows.return_value = [("a" * 64, 10), ("a" * 64, 11)]
+        connection = self._connection_with_result((1, 10, 10, 0, 0, 0))
+
+        with self.assertRaisesRegex(
+            LoadValidationError,
+            "2009-12-01 날짜 배치 검증 실패",
+        ):
+            validate_loaded_date(
+                connection,
+                Path("sales.csv"),
+                self.manifest_path,
+                date(2009, 12, 1),
+            )
 
 
 if __name__ == "__main__":

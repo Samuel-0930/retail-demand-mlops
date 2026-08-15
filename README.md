@@ -60,6 +60,9 @@ PYTHONPATH=src .venv/bin/python -m retail_demand_mlops.ingestion.loader --date 2
 # manifest와 PostgreSQL 전체 적재 결과 비교
 PYTHONPATH=src .venv/bin/python -m retail_demand_mlops.ingestion.validate
 
+# simulator 기대값과 PostgreSQL 하루치 배치 비교
+PYTHONPATH=src .venv/bin/python -m retail_demand_mlops.ingestion.validate --date 2009-12-01
+
 # 전체 테스트
 PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
 ```
