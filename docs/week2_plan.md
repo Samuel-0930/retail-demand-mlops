@@ -10,9 +10,10 @@ Week 2는 Week 1의 Python pipeline을 수정하는 단계가 아니라, Airflow
 3. [완료] DAG import 오류와 task 의존성 자동 테스트
 4. [완료] `2009-12-01` 수동 실행과 PostgreSQL 결과 확인
 5. [완료] 같은 날짜 재실행으로 멱등성 확인
-6. [다음] 작은 날짜 범위 backfill 방법 결정
-7. 일일 schedule과 data interval 매핑 결정
-8. Week 2 운영 Runbook과 GitHub CI 분리 여부 정리
+6. [완료] 작은 날짜 범위 backfill 방법 결정
+7. [다음] 최대 3일 순차 backfill DAG 구현과 검증
+8. 일일 schedule과 data interval 매핑 결정
+9. Week 2 운영 Runbook과 GitHub CI 분리 여부 정리
 
 ## 단계별 원칙
 
@@ -24,6 +25,6 @@ Week 2는 Week 1의 Python pipeline을 수정하는 단계가 아니라, Airflow
 
 ## 현재 위치
 
-첫 DAG에 `2009-12-01`을 연속 두 번 전달해 두 실행이 모두 성공하고, PostgreSQL의
-3,223행이 늘어나지 않는 것을 확인했습니다. 다음 작업은 여러 날짜를 처리할 때 기존
-backfill pipeline을 Airflow가 어떤 단위로 호출할지 작은 범위부터 결정하는 것입니다.
+소규모 backfill은 날짜별 병렬 task 대신 기존 `run_backfill_pipeline()`을 하나의
+Airflow task에서 호출해 최대 3일을 순서대로 처리하기로 결정했습니다. 다음 작업은
+이 계약을 DAG와 테스트로 구현하고 `2009-12-01`~`2009-12-03`으로 검증하는 것입니다.
