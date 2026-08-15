@@ -17,8 +17,8 @@ UCI Online Retail II XLSX
   → PostgreSQL COPY ingestion
 ```
 
-Airflow는 수동 날짜 한 건을 처리하는 첫 DAG까지 추가했지만 실제 DAG 실행은 아직
-하지 않았습니다. dbt, MLflow, LightGBM, FastAPI도 아직 포함하지 않습니다.
+Airflow는 수동 날짜 한 건을 처리하는 첫 DAG와 PostgreSQL 연동 실행까지
+확인했습니다. dbt, MLflow, LightGBM, FastAPI는 아직 포함하지 않습니다.
 
 ## Implemented
 
@@ -37,6 +37,7 @@ Airflow는 수동 날짜 한 건을 처리하는 첫 DAG까지 추가했지만 �
 - push와 pull request마다 단위 테스트를 실행하는 GitHub Actions CI
 - 공식 constraints를 사용하는 Airflow 3.3.0 전용 환경 설치 스크립트
 - 날짜 검증 뒤 기존 일일 pipeline을 호출하는 수동 실행 Airflow DAG
+- Airflow DAG의 `2009-12-01` 적재·검증 성공 확인
 
 ## Setup
 

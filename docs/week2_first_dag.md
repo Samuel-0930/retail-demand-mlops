@@ -39,5 +39,39 @@ PYTHONPATH=src .airflow-venv/bin/python \
 `retail_daily_ingestion`이 보여야 합니다. 테스트는 자동 일정이 꺼져 있는지, 두
 task가 올바른 순서인지, 잘못된 날짜를 거부하는지 확인합니다.
 
-이 단계에서는 DAG가 읽히는 것까지만 검증했습니다. 실제 PostgreSQL 적재를 포함한
-수동 실행은 다음 단계에서 `2009-12-01` 하루로 제한해 확인합니다.
+## 하루치 수동 실행
+
+다음 명령은 scheduler나 웹 화면을 계속 실행하지 않고, DAG의 두 task를 현재
+터미널에서 한 번 순서대로 실행합니다.
+
+```bash
+.airflow-venv/bin/airflow dags test retail_daily_ingestion \
+  --conf '{"target_date":"2009-12-01"}'
+```
+
+`dags test`의 test는 가짜 데이터로 흉내만 낸다는 뜻이 아닙니다. task가 연결한 실제
+Python pipeline과 PostgreSQL을 사용하므로, 실행 전 `.env`의 데이터베이스를 반드시
+확인해야 합니다. 다만 scheduler와 웹 서버 없이 DAG 한 건을 로컬에서 점검한다는
+점이 일반 운영 실행과 다릅니다.
+
+## 확인된 결과
+
+2026-08-16에 `2009-12-01`을 입력해 실행한 결과는 다음과 같습니다.
+
+| 항목 | 결과 |
+|---|---:|
+| Airflow DAG 상태 | `success` |
+| 입력 행 | 3,223 |
+| 새로 삽입된 행 | 0 |
+| 기존 행으로 건너뛴 행 | 3,223 |
+| 검증된 PostgreSQL 행 | 3,223 |
+
+이미 Week 1에서 해당 날짜가 적재돼 있었기 때문에 새 행은 추가되지 않았습니다.
+3,223행을 모두 기존 데이터로 판단하고 최종 행 수도 3,223행으로 유지했으므로,
+DAG가 기존 멱등 적재 규칙을 깨지 않고 호출했다는 뜻입니다.
+
+최근 적재 이력은 다음 명령으로 다시 확인할 수 있습니다.
+
+```bash
+.venv/bin/retail-runs --date 2009-12-01 --limit 3
+```
