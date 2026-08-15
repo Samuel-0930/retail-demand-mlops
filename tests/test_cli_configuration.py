@@ -22,6 +22,9 @@ class CliConfigurationTest(unittest.TestCase):
             "retail-load": "retail_demand_mlops.ingestion.loader:main",
             "retail-validate": "retail_demand_mlops.ingestion.validate:main",
             "retail-daily": "retail_demand_mlops.ingestion.daily_pipeline:main",
+            "retail-backfill": (
+                "retail_demand_mlops.ingestion.backfill_pipeline:main"
+            ),
         }
 
         self.assertEqual(configuration["project"]["scripts"], expected_scripts)
