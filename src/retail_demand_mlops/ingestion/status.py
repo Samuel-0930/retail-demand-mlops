@@ -97,46 +97,45 @@ def list_recent_ingestion_runs(
     )
 
 
-def _display_value(value: object) -> str:
-    """표의 빈 값을 구분하고 오류 메시지가 한 줄을 깨뜨리지 않게 정리한다."""
+def _display_count(value: int | None) -> str:
+    """행 수의 빈 값을 구분하고 큰 숫자에는 천 단위 구분자를 넣는다."""
     if value is None:
         return "-"
-    if isinstance(value, (date, datetime)):
-        return value.isoformat()
-    return " ".join(str(value).split())
+    return f"{value:,}"
+
+
+def _display_duration(record: IngestionRunRecord) -> str:
+    """완료된 실행 시간을 초로 표시하고 진행 중이면 빈 값으로 구분한다."""
+    if record.finished_at is None:
+        return "-"
+    return f"{(record.finished_at - record.started_at).total_seconds():.2f}"
+
+
+def _display_error(error_message: str, max_length: int = 55) -> str:
+    """오류를 한 줄로 정리하고 터미널 폭을 넘지 않도록 제한한다."""
+    single_line_error = " ".join(error_message.split())
+    if len(single_line_error) <= max_length:
+        return single_line_error
+    return f"{single_line_error[: max_length - 1]}…"
 
 
 def format_ingestion_runs(records: tuple[IngestionRunRecord, ...]) -> str:
-    """외부 표 라이브러리 없이 최근 실행 이력을 탭 구분 텍스트로 만든다."""
-    columns = (
-        "run_id",
-        "batch_date",
-        "status",
-        "input",
-        "inserted",
-        "skipped",
-        "started_at",
-        "finished_at",
-        "error",
-    )
-    lines = ["\t".join(columns)]
+    """최근 실행의 핵심 정보만 일반 터미널 폭에 맞춘 표로 만든다."""
+    lines = [
+        f"{'RUN':>4}  {'BATCH_DATE':<10}  {'STATUS':<9}  "
+        f"{'INPUT':>9}  {'INSERTED':>9}  {'SKIPPED':>9}  {'SECONDS':>7}"
+    ]
     for record in records:
+        batch_date = record.batch_date.isoformat() if record.batch_date else "-"
         lines.append(
-            "\t".join(
-                _display_value(value)
-                for value in (
-                    record.run_id,
-                    record.batch_date,
-                    record.status,
-                    record.input_rows,
-                    record.inserted_rows,
-                    record.skipped_rows,
-                    record.started_at,
-                    record.finished_at,
-                    record.error_message,
-                )
-            )
+            f"{record.run_id:>4}  {batch_date:<10}  {record.status:<9}  "
+            f"{_display_count(record.input_rows):>9}  "
+            f"{_display_count(record.inserted_rows):>9}  "
+            f"{_display_count(record.skipped_rows):>9}  "
+            f"{_display_duration(record):>7}"
         )
+        if record.error_message is not None:
+            lines.append(f"      error: {_display_error(record.error_message)}")
     return "\n".join(lines)
 
 
