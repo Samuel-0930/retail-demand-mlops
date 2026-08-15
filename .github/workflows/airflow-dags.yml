@@ -1,0 +1,74 @@
+name: Airflow DAG tests
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/airflow-dags.yml"
+      - "dags/**"
+      - "src/**"
+      - "tests/airflow/**"
+      - "pyproject.toml"
+  pull_request:
+    paths:
+      - ".github/workflows/airflow-dags.yml"
+      - "dags/**"
+      - "src/**"
+      - "tests/airflow/**"
+      - "pyproject.toml"
+
+# DAG 검사는 저장소 읽기 외의 GitHub 권한이 필요하지 않다.
+permissions:
+  contents: read
+
+concurrency:
+  group: airflow-dags-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  AIRFLOW_VERSION: "3.3.0"
+  PYTHON_VERSION: "3.13"
+  AIRFLOW_HOME: ${{ github.workspace }}/.airflow-ci
+  AIRFLOW__CORE__DAGS_FOLDER: ${{ github.workspace }}/dags
+  AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+  RETAIL_SIMULATION_SCHEDULE_START_DATE: "2026-08-16"
+  RETAIL_SIMULATION_SOURCE_START_DATE: "2009-12-01"
+  RETAIL_SIMULATION_SOURCE_END_DATE: "2011-12-09"
+
+jobs:
+  airflow-dag-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      # 로컬 설치 스크립트와 같은 공식 constraints를 사용해 Airflow 환경을 재현한다.
+      - name: Install Airflow and project
+        run: |
+          constraint_url="https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PYTHON_VERSION}.txt"
+          python -m pip install "apache-airflow==${AIRFLOW_VERSION}" --constraint "${constraint_url}"
+          python -m pip install . --constraint "${constraint_url}"
+
+      - name: Run Airflow DAG tests
+        env:
+          PYTHONPATH: src
+        run: python -m unittest discover -s tests/airflow -v
+
+      # 세 DAG 이름을 모두 확인해 일부 파일의 import 실패가 로그에 묻히지 않게 한다.
+      - name: Verify local DAG imports
+        run: |
+          airflow db migrate
+          airflow dags list-import-errors --local --output json
+          airflow dags list --local --output plain | tee /tmp/retail-dags.txt
+          grep -q "retail_daily_ingestion" /tmp/retail-dags.txt
+          grep -q "retail_backfill_ingestion" /tmp/retail-dags.txt
+          grep -q "retail_daily_simulation" /tmp/retail-dags.txt

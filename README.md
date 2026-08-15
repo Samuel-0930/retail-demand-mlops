@@ -1,13 +1,14 @@
 # Retail Demand MLOps
 
 [![Unit tests](https://github.com/Samuel-0930/retail-demand-mlops/actions/workflows/tests.yml/badge.svg)](https://github.com/Samuel-0930/retail-demand-mlops/actions/workflows/tests.yml)
+[![Airflow DAG tests](https://github.com/Samuel-0930/retail-demand-mlops/actions/workflows/airflow-dags.yml/badge.svg)](https://github.com/Samuel-0930/retail-demand-mlops/actions/workflows/airflow-dags.yml)
 
 리테일 수요 데이터를 안정적으로 수집·검증·적재하는 과정을 보여주기 위한
 Data Engineering 중심 포트폴리오 프로젝트입니다.
 
 ## Current Scope
 
-Week 1 데이터 적재 기반은 완료됐고, Week 2 Airflow orchestration을 시작했습니다.
+Week 1 데이터 적재 기반과 Week 2 Airflow orchestration 구현을 완료했습니다.
 
 ```text
 UCI Online Retail II XLSX
@@ -17,8 +18,8 @@ UCI Online Retail II XLSX
   → PostgreSQL COPY ingestion
 ```
 
-Airflow는 수동 날짜 한 건을 처리하는 첫 DAG와 PostgreSQL 연동 실행까지
-확인했습니다. dbt, MLflow, LightGBM, FastAPI는 아직 포함하지 않습니다.
+Airflow는 수동 일일 처리, 최대 3일 backfill, pause 상태의 자동 일일 시뮬레이션과
+별도 DAG CI까지 구현했습니다. dbt, MLflow, LightGBM, FastAPI는 아직 포함하지 않습니다.
 
 ## Implemented
 
@@ -41,6 +42,7 @@ Airflow는 수동 날짜 한 건을 처리하는 첫 DAG와 PostgreSQL 연동 �
 - 같은 Airflow DAG 연속 실행의 PostgreSQL 멱등성 확인
 - 최대 3일을 날짜순으로 처리하는 수동 Airflow backfill DAG
 - 현재 일일 구간을 과거 판매 날짜로 재생하는 pause 상태의 자동 Airflow DAG
+- Airflow 설치·DAG import를 분리 검증하는 GitHub Actions workflow
 
 ## Setup
 
@@ -63,6 +65,8 @@ set +a
 
 처음부터 순서대로 실행하거나 문제를 해결할 때는
 [Week 1 운영 Runbook](docs/week1_runbook.md)을 확인합니다.
+Airflow 설치부터 중지·복구까지는
+[Week 2 운영 Runbook](docs/week2_runbook.md)을 확인합니다.
 
 ## Commands
 
@@ -120,7 +124,7 @@ PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
 ## Roadmap
 
 - Week 1: Python ingestion, PostgreSQL, 검증, 운영 이력 — 완료
-- Week 2: Airflow 수동 날짜 DAG부터 schedule까지 — 진행 중
+- Week 2: Airflow 수동 날짜 DAG부터 pause 상태 schedule까지 — 완료
 - 이후: dbt 데이터 모델링 → MLflow·LightGBM → FastAPI
 
 [Week 2 세부 계획](docs/week2_plan.md)
@@ -132,6 +136,8 @@ PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
 [최대 3일 Airflow backfill DAG 실행 방법](docs/week2_backfill_dag.md)
 
 [자동 일일 시뮬레이션 DAG 설정과 날짜 매핑](docs/week2_daily_simulation_dag.md)
+
+[Week 2 Airflow 운영·중지·복구 Runbook](docs/week2_runbook.md)
 
 ## Dataset
 
