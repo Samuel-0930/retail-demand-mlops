@@ -7,7 +7,7 @@ Data Engineering 중심 포트폴리오 프로젝트입니다.
 
 ## Current Scope
 
-현재 Week 1 범위만 구현되어 있습니다.
+Week 1 데이터 적재 기반은 완료됐고, Week 2 Airflow orchestration을 시작했습니다.
 
 ```text
 UCI Online Retail II XLSX
@@ -17,7 +17,8 @@ UCI Online Retail II XLSX
   → PostgreSQL COPY ingestion
 ```
 
-Airflow, dbt, MLflow, LightGBM, FastAPI는 아직 포함하지 않습니다.
+Airflow는 런타임 경계와 구현 순서를 결정한 상태이며 DAG는 아직 추가하지
+않았습니다. dbt, MLflow, LightGBM, FastAPI도 아직 포함하지 않습니다.
 
 ## Implemented
 
@@ -106,6 +107,15 @@ PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
 ## Design Decisions
 
 - [날짜별 검증에 기존 날짜 인덱스를 유지한 근거](docs/decisions/001_keep_sale_date_index.md)
+- [Airflow를 별도 런타임으로 분리한 근거](docs/decisions/002_airflow_runtime_boundary.md)
+
+## Roadmap
+
+- Week 1: Python ingestion, PostgreSQL, 검증, 운영 이력 — 완료
+- Week 2: Airflow 수동 날짜 DAG부터 schedule까지 — 진행 중
+- 이후: dbt 데이터 모델링 → MLflow·LightGBM → FastAPI
+
+[Week 2 세부 계획](docs/week2_plan.md)
 
 ## Dataset
 
