@@ -48,6 +48,9 @@ PYTHONPATH=src .venv/bin/python -m retail_demand_mlops.ingestion.profile
 # 표준 CSV 생성
 PYTHONPATH=src .venv/bin/python -m retail_demand_mlops.ingestion.transform
 
+# 기존 PostgreSQL 데이터베이스에 raw·ops 스키마 적용
+PYTHONPATH=src .venv/bin/python -m retail_demand_mlops.database.setup
+
 # 환경변수에 지정한 PostgreSQL로 CSV 적재
 PYTHONPATH=src .venv/bin/python -m retail_demand_mlops.ingestion.loader
 
