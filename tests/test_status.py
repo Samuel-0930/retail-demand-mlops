@@ -49,6 +49,32 @@ class IngestionStatusTest(unittest.TestCase):
 
         connection.execute.assert_not_called()
 
+    def test_filters_by_status_and_batch_date_with_parameters(self) -> None:
+        """상태와 날짜 값은 SQL 문자열에 직접 넣지 않고 파라미터로 전달해야 한다."""
+        connection = Mock()
+        connection.execute.return_value.fetchall.return_value = []
+        batch_date = date(2009, 12, 1)
+
+        list_recent_ingestion_runs(
+            connection,
+            limit=5,
+            status="failed",
+            batch_date=batch_date,
+        )
+
+        query, parameters = connection.execute.call_args.args
+        self.assertIn("WHERE status = %s AND batch_date = %s", query)
+        self.assertEqual(parameters, ("failed", batch_date, 5))
+
+    def test_rejects_unknown_status_before_query(self) -> None:
+        """테이블 계약에 없는 상태는 SQL 실행 전에 거부해야 한다."""
+        connection = Mock()
+
+        with self.assertRaisesRegex(IngestionStatusQueryError, "지원하지 않는"):
+            list_recent_ingestion_runs(connection, status="unknown")
+
+        connection.execute.assert_not_called()
+
     def test_formats_nulls_and_multiline_error_as_one_row(self) -> None:
         """실행 중이거나 실패한 기록도 표의 한 행을 깨뜨리지 않아야 한다."""
         records = (

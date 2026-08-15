@@ -13,6 +13,9 @@ import psycopg
 from retail_demand_mlops.config import DatabaseSettings
 
 
+INGESTION_STATUSES = ("running", "succeeded", "failed")
+
+
 class IngestionStatusQueryError(ValueError):
     """안전한 범위로 적재 실행 이력을 조회할 수 없을 때의 예외."""
 
@@ -35,13 +38,31 @@ class IngestionRunRecord:
 def list_recent_ingestion_runs(
     connection: psycopg.Connection[Any],
     limit: int = 10,
+    *,
+    status: str | None = None,
+    batch_date: date | None = None,
 ) -> tuple[IngestionRunRecord, ...]:
-    """최근 적재 실행을 최신순으로 조회하며 데이터는 변경하지 않는다."""
+    """선택한 상태·날짜의 최근 적재 실행을 조회하며 데이터는 변경하지 않는다."""
     if not 1 <= limit <= 100:
         raise IngestionStatusQueryError("조회 개수는 1~100 범위여야 합니다")
+    if status is not None and status not in INGESTION_STATUSES:
+        raise IngestionStatusQueryError(f"지원하지 않는 실행 상태입니다: {status}")
+
+    filters = []
+    parameters: list[object] = []
+    if status is not None:
+        filters.append("status = %s")
+        parameters.append(status)
+    if batch_date is not None:
+        filters.append("batch_date = %s")
+        parameters.append(batch_date)
+
+    # SQL 구조에는 코드가 정한 조건만 넣고 사용자 값은 별도 파라미터로 전달한다.
+    where_clause = f"WHERE {' AND '.join(filters)}" if filters else ""
+    parameters.append(limit)
 
     rows = connection.execute(
-        """
+        f"""
         SELECT
             run_id,
             batch_date,
@@ -53,10 +74,11 @@ def list_recent_ingestion_runs(
             started_at,
             finished_at
         FROM ops.ingestion_runs
+        {where_clause}
         ORDER BY run_id DESC
         LIMIT %s
         """,
-        (limit,),
+        tuple(parameters),
     ).fetchall()
 
     return tuple(
@@ -127,6 +149,16 @@ def main() -> None:
         default=10,
         help="가져올 최근 실행 개수(기본 10, 최대 100)",
     )
+    parser.add_argument(
+        "--status",
+        choices=INGESTION_STATUSES,
+        help="running, succeeded, failed 중 조회할 실행 상태",
+    )
+    parser.add_argument(
+        "--date",
+        type=date.fromisoformat,
+        help="조회할 배치 날짜(YYYY-MM-DD)",
+    )
     arguments = parser.parse_args()
 
     settings = DatabaseSettings.from_mapping(os.environ)
@@ -138,7 +170,12 @@ def main() -> None:
         password=settings.password,
         options="-c default_transaction_read_only=on",
     ) as connection:
-        records = list_recent_ingestion_runs(connection, arguments.limit)
+        records = list_recent_ingestion_runs(
+            connection,
+            arguments.limit,
+            status=arguments.status,
+            batch_date=arguments.date,
+        )
 
     print(format_ingestion_runs(records))
 

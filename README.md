@@ -77,6 +77,10 @@ python3 -m venv .venv
 # PostgreSQL의 최근 적재 실행 10개를 읽기 전용으로 조회
 .venv/bin/retail-runs --limit 10
 
+# 실패한 실행 또는 특정 날짜의 실행만 조회
+.venv/bin/retail-runs --status failed
+.venv/bin/retail-runs --date 2009-12-01
+
 # 전체 테스트
 PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
 ```
