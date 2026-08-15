@@ -62,6 +62,14 @@ class LoadResult:
     skipped_rows: int
 
 
+@dataclass(frozen=True)
+class IngestionRunResult:
+    """감사 실행 ID와 실제 데이터 적재 결과를 하나의 실행 결과로 묶는다."""
+
+    run_id: int
+    load_result: LoadResult
+
+
 def read_csv_manifest(manifest_path: Path) -> dict[str, Any]:
     """CSV manifest의 필수 무결성 메타데이터를 읽고 계약을 검증한다."""
     if not manifest_path.exists():
@@ -264,6 +272,46 @@ def load_csv_to_postgres(
     )
 
 
+def run_ingestion(
+    settings: DatabaseSettings,
+    csv_path: Path,
+    manifest_path: Path,
+    *,
+    target_date: date | None = None,
+) -> IngestionRunResult:
+    """감사 이력과 데이터 트랜잭션을 포함한 전체 적재 실행을 수행한다."""
+    connection_parameters = {
+        "host": settings.host,
+        "port": settings.port,
+        "dbname": settings.database,
+        "user": settings.user,
+        "password": settings.password,
+    }
+    manifest = read_csv_manifest(manifest_path)
+
+    # 감사 기록은 별도 autocommit 연결을 사용해 데이터 적재 롤백과 독립적으로 남긴다.
+    with psycopg.connect(**connection_parameters, autocommit=True) as audit_connection:
+        run_id = start_ingestion_run(
+            audit_connection,
+            manifest["target_sha256"],
+            target_date,
+        )
+        try:
+            with psycopg.connect(**connection_parameters) as data_connection:
+                load_result = load_csv_to_postgres(
+                    data_connection,
+                    csv_path,
+                    manifest_path,
+                    target_date=target_date,
+                )
+        except BaseException as error:
+            fail_ingestion_run(audit_connection, run_id, error)
+            raise
+        succeed_ingestion_run(audit_connection, run_id, load_result)
+
+    return IngestionRunResult(run_id=run_id, load_result=load_result)
+
+
 def main() -> None:
     """환경변수의 PostgreSQL에 기본 표준 CSV를 적재한다."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -277,39 +325,19 @@ def main() -> None:
     arguments = parser.parse_args()
 
     settings = DatabaseSettings.from_mapping(os.environ)
-    connection_parameters = {
-        "host": settings.host,
-        "port": settings.port,
-        "dbname": settings.database,
-        "user": settings.user,
-        "password": settings.password,
-    }
-    manifest = read_csv_manifest(arguments.manifest)
-
-    # 감사 기록은 별도 autocommit 연결을 사용해 데이터 적재 롤백과 독립적으로 남긴다.
-    with psycopg.connect(**connection_parameters, autocommit=True) as audit_connection:
-        run_id = start_ingestion_run(
-            audit_connection,
-            manifest["target_sha256"],
-            arguments.date,
-        )
-        try:
-            with psycopg.connect(**connection_parameters) as data_connection:
-                result = load_csv_to_postgres(
-                    data_connection,
-                    arguments.source,
-                    arguments.manifest,
-                    target_date=arguments.date,
-                )
-        except BaseException as error:
-            fail_ingestion_run(audit_connection, run_id, error)
-            raise
-        succeed_ingestion_run(audit_connection, run_id, result)
+    run_result = run_ingestion(
+        settings,
+        arguments.source,
+        arguments.manifest,
+        target_date=arguments.date,
+    )
 
     batch = arguments.date.isoformat() if arguments.date is not None else "all"
     print(
-        f"적재 완료: run_id={run_id}, batch={batch}, input={result.input_rows}, "
-        f"inserted={result.inserted_rows}, skipped={result.skipped_rows}"
+        f"적재 완료: run_id={run_result.run_id}, batch={batch}, "
+        f"input={run_result.load_result.input_rows}, "
+        f"inserted={run_result.load_result.inserted_rows}, "
+        f"skipped={run_result.load_result.skipped_rows}"
     )
 
 
