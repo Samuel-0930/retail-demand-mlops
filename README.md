@@ -83,6 +83,10 @@ PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
 
 원본 XLSX와 생성된 CSV는 용량과 재배포 문제를 피하기 위해 Git에서 제외합니다.
 
+## Design Decisions
+
+- [날짜별 검증에 기존 날짜 인덱스를 유지한 근거](docs/decisions/001_keep_sale_date_index.md)
+
 ## Dataset
 
 [UCI Online Retail II](https://archive.ics.uci.edu/dataset/502/online%2Bretail%2Bii)를
