@@ -114,6 +114,7 @@ PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
 - [날짜별 검증에 기존 날짜 인덱스를 유지한 근거](docs/decisions/001_keep_sale_date_index.md)
 - [Airflow를 별도 런타임으로 분리한 근거](docs/decisions/002_airflow_runtime_boundary.md)
 - [Airflow backfill을 최대 3일 순차 실행으로 시작하는 근거](docs/decisions/003_sequential_airflow_backfill.md)
+- [Airflow 일일 schedule을 과거 판매 날짜에 매핑하는 근거](docs/decisions/004_daily_simulation_schedule.md)
 
 ## Roadmap
 
