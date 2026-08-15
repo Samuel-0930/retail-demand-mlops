@@ -17,8 +17,8 @@ UCI Online Retail II XLSX
   → PostgreSQL COPY ingestion
 ```
 
-Airflow는 런타임 경계와 구현 순서를 결정한 상태이며 DAG는 아직 추가하지
-않았습니다. dbt, MLflow, LightGBM, FastAPI도 아직 포함하지 않습니다.
+Airflow는 수동 날짜 한 건을 처리하는 첫 DAG까지 추가했지만 실제 DAG 실행은 아직
+하지 않았습니다. dbt, MLflow, LightGBM, FastAPI도 아직 포함하지 않습니다.
 
 ## Implemented
 
@@ -36,6 +36,7 @@ Airflow는 런타임 경계와 구현 순서를 결정한 상태이며 DAG는 �
 - 최근 적재 성공·실패와 처리 행 수를 보여주는 읽기 전용 운영 조회
 - push와 pull request마다 단위 테스트를 실행하는 GitHub Actions CI
 - 공식 constraints를 사용하는 Airflow 3.3.0 전용 환경 설치 스크립트
+- 날짜 검증 뒤 기존 일일 pipeline을 호출하는 수동 실행 Airflow DAG
 
 ## Setup
 
@@ -119,6 +120,8 @@ PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
 [Week 2 세부 계획](docs/week2_plan.md)
 
 [Airflow 전용 환경 설치 방법](docs/week2_airflow_setup.md)
+
+[첫 수동 날짜 DAG 구조와 확인 방법](docs/week2_first_dag.md)
 
 ## Dataset
 

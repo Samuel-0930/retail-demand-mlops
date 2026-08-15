@@ -1,7 +1,6 @@
 # Week 2 Airflow 설치
 
-Airflow는 핵심 pipeline의 `.venv`와 분리된 `.airflow-venv`에 설치합니다. 이 단계는
-DAG나 Airflow metadata DB를 만들지 않고 실행 파일과 Python import만 준비합니다.
+Airflow는 핵심 pipeline의 `.venv`와 분리된 `.airflow-venv`에 설치합니다.
 
 ## 설치
 
@@ -30,8 +29,9 @@ DAG나 Airflow metadata DB를 만들지 않고 실행 파일과 Python import만
   "from retail_demand_mlops.ingestion.daily_pipeline import run_daily_pipeline; print('project import: OK')"
 ```
 
-Airflow runtime 파일은 프로젝트 내부 `.airflow`에 둘 예정이며 Git에는 저장하지
-않습니다. 다음 단계에서 `AIRFLOW_HOME`과 첫 DAG 디렉터리를 설정합니다.
+Airflow runtime 파일은 프로젝트 내부 `.airflow`에 두며 Git에는 저장하지
+않습니다. 환경 설정과 첫 DAG 확인 방법은
+[첫 수동 날짜 DAG](week2_first_dag.md)를 참고합니다.
 
 ## 문제 해결
 
