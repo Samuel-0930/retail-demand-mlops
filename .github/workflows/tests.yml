@@ -1,0 +1,38 @@
+name: Unit tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+# 테스트는 저장소 내용을 읽기만 하므로 기본 토큰 권한을 최소화한다.
+permissions:
+  contents: read
+
+# 같은 브랜치에 새 변경이 오면 오래된 테스트를 취소해 실행 자원을 낭비하지 않는다.
+concurrency:
+  group: unit-tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      # 실제 사용자 설치 방식으로 패키징과 의존성 설치가 함께 되는지 확인한다.
+      - name: Install project
+        run: python -m pip install .
+
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v

@@ -1,5 +1,7 @@
 # Retail Demand MLOps
 
+[![Unit tests](https://github.com/Samuel-0930/retail-demand-mlops/actions/workflows/tests.yml/badge.svg)](https://github.com/Samuel-0930/retail-demand-mlops/actions/workflows/tests.yml)
+
 리테일 수요 데이터를 안정적으로 수집·검증·적재하는 과정을 보여주기 위한
 Data Engineering 중심 포트폴리오 프로젝트입니다.
 
@@ -31,6 +33,7 @@ Airflow, dbt, MLflow, LightGBM, FastAPI는 아직 포함하지 않습니다.
 - 하루치 적재 후 결과를 확인하는 일일 pipeline
 - 시작일과 종료일을 포함해 날짜순으로 처리하는 backfill pipeline
 - 최근 적재 성공·실패와 처리 행 수를 보여주는 읽기 전용 운영 조회
+- push와 pull request마다 단위 테스트를 실행하는 GitHub Actions CI
 
 ## Setup
 
