@@ -145,6 +145,8 @@ PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
 
 [원본 보존과 일별 상품 수요 모델의 경계](docs/decisions/005_dbt_modeling_boundary.md)
 
+[Week 3 dbt 전용 환경 설치 방법](docs/week3_dbt_setup.md)
+
 ## Dataset
 
 [UCI Online Retail II](https://archive.ics.uci.edu/dataset/502/online%2Bretail%2Bii)를
