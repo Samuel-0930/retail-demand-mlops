@@ -8,7 +8,8 @@ Data Engineering 중심 포트폴리오 프로젝트입니다.
 
 ## Current Scope
 
-Week 1 데이터 적재 기반과 Week 2 Airflow orchestration 구현을 완료했습니다.
+Week 1 데이터 적재 기반과 Week 2 Airflow orchestration 구현을 완료했고,
+Week 3 dbt 데이터 모델링 설계를 시작했습니다.
 
 ```text
 UCI Online Retail II XLSX
@@ -125,7 +126,8 @@ PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
 
 - Week 1: Python ingestion, PostgreSQL, 검증, 운영 이력 — 완료
 - Week 2: Airflow 수동 날짜 DAG부터 pause 상태 schedule까지 — 완료
-- 이후: dbt 데이터 모델링 → MLflow·LightGBM → FastAPI
+- Week 3: dbt 모델 계층과 일별 상품 수요 정의 — 진행 중
+- 이후: MLflow·LightGBM → FastAPI
 
 [Week 2 세부 계획](docs/week2_plan.md)
 
@@ -138,6 +140,10 @@ PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
 [자동 일일 시뮬레이션 DAG 설정과 날짜 매핑](docs/week2_daily_simulation_dag.md)
 
 [Week 2 Airflow 운영·중지·복구 Runbook](docs/week2_runbook.md)
+
+[Week 3 dbt 데이터 모델링 계획](docs/week3_plan.md)
+
+[원본 보존과 일별 상품 수요 모델의 경계](docs/decisions/005_dbt_modeling_boundary.md)
 
 ## Dataset
 
